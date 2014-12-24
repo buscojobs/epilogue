@@ -87,7 +87,7 @@ describe('Resource(basic)', function() {
         record: { username: 'blah', email: 'notanemail' },
         expected: {
           statusCode: 400,
-          keys: ['email']
+          fields: ['email']
         }
       },
       {
@@ -95,7 +95,7 @@ describe('Resource(basic)', function() {
         record: { email: 'valid@email.com' },
         expected: {
           statusCode: 400,
-          keys: ['username']
+          fields: ['username']
         }
       }
     ].forEach(function(createTest) {
@@ -106,7 +106,11 @@ describe('Resource(basic)', function() {
         }, function(error, response, body) {
           var result = _.isObject(body) ? body : JSON.parse(body);
           expect(response.statusCode).to.equal(createTest.expected.statusCode);
-          expect(result).to.contain.keys(createTest.expected.keys);
+          expect(result).to.contain.keys(['message', 'errors']);
+          createTest.expected.fields.forEach(function(field, i) {
+            expect(result.errors[i].field).to.equal(field);
+          });
+
           done();
         });
       });
@@ -128,7 +132,8 @@ describe('Resource(basic)', function() {
         }, function(err, response, body) {
           expect(response.statusCode).to.equal(400);
           var record = _.isObject(body) ? body : JSON.parse(body);
-          expect(record).to.contain.keys(['email']);
+          expect(record).to.contain.keys(['message', 'errors']);
+          expect(record.errors[0].field).to.equal('email');
           done();
         });
       });
@@ -137,11 +142,11 @@ describe('Resource(basic)', function() {
   });
 
   describe('read', function() {
-    it('should return 404 for invalid record', function(done) {
+    it('should return proper error for an invalid record', function(done) {
       request.get({ url: test.baseUrl + '/users/42' }, function(err, response, body) {
         expect(response.statusCode).to.equal(404);
         var record = _.isObject(body) ? body : JSON.parse(body);
-        expect(record).to.contain.keys('error');
+        expect(record).to.contain.keys('message');
         done();
       });
     });
@@ -205,11 +210,11 @@ describe('Resource(basic)', function() {
   });
 
   describe('delete', function() {
-    it('should return 404 for invalid record', function(done) {
+    it('should return proper error for invalid record', function(done) {
       request.del({ url: test.baseUrl + '/users/42' }, function(err, response, body) {
         expect(response.statusCode).to.equal(404);
         var record = _.isObject(body) ? body : JSON.parse(body);
-        expect(record).to.contain.keys('error');
+        expect(record).to.contain.keys('message');
         done();
       });
     });
